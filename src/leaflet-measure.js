@@ -39,7 +39,7 @@ L.Control.Measure = L.Control.extend({
   _className: 'leaflet-control-measure',
   options: {
     units: {},
-    position: 'topright',
+    position: 'bottomright',
     primaryLengthUnit: 'feet',
     secondaryLengthUnit: 'miles',
     primaryAreaUnit: 'sqmiles',
@@ -70,8 +70,11 @@ L.Control.Measure = L.Control.extend({
     this._layer = L.layerGroup().addTo(map);
     map.measure = this._startMeasure;
     var self = this;
-    map.on('click', function () {
+    map.on('startMeasure', function () {
       self._startMeasure();
+    });
+    map.on('stopMeasure', function () {
+      self._finishMeasure();
     });
     return this._container;
   },
