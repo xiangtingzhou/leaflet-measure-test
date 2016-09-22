@@ -6858,6 +6858,10 @@ L.Control.Measure = L.Control.extend({
     });
     map.on('stopMeasure', function () {
       self._finishMeasure();
+      if (self._map) {
+        self._layer.clearLayers();
+      }
+      self._map.fire('measurefinish');
     });
     return this._container;
   },
@@ -6889,6 +6893,7 @@ L.Control.Measure = L.Control.extend({
     // $toggle = this.$toggle = $('.js-toggle', container);         // collapsed content
     this.$interaction = $('.js-interaction', container);         // expanded content
     $start = $('.js-start', container);                          // start button
+    $start.style.display = 'none';
     $cancel = $('.js-cancel', container);                        // cancel button
     $finish = $('.js-finish', container);                        // finish button
     // this.$startPrompt = $('.js-startprompt', container);         // full area with button to start measurment
@@ -6989,13 +6994,13 @@ L.Control.Measure = L.Control.extend({
     this._map.fire('measurestart', null, false);
   },
   _doNothing: function () {
-
+    return;
   },
   // return to state with no measure in progress, undo `this._startMeasure`
   _finishMeasure: function () {
-    var model = _.extend({}, this._resultsModel, {
-      points: this._latlngs
-    });
+    // var model = _.extend({}, this._resultsModel, {
+    //   points: this._latlngs
+    // });
     this._locked = false;
 
     L.DomEvent.off(this._container, 'mouseover', this._handleMapMouseOut, this);
@@ -7022,8 +7027,6 @@ L.Control.Measure = L.Control.extend({
 
     this._updateMeasureNotStarted();
     this._collapse();
-
-    this._map.fire('measurefinish', model, false);
   },
   // clear all running measure data
   _clearMeasure: function () {
@@ -7171,7 +7174,6 @@ L.Control.Measure = L.Control.extend({
       L.DomEvent.on(deleteLink, 'click', function () {
         // TODO. maybe remove any event handlers on zoom and delete buttons?
         this._layer.removeLayer(resultFeature);
-        this._map.fire('measurefinish');
       }, this);
     }
 
@@ -7180,7 +7182,8 @@ L.Control.Measure = L.Control.extend({
       return;
     }
     resultFeature.bindPopup(popupContainer, this.options.popupOptions);
-    resultFeature.openPopup(resultFeature.getBounds().getCenter());
+    resultFeature._popup.setLatLng(resultFeature.getBounds().getCenter());
+    this._map.addLayer(resultFeature._popup);
 
     this._startMeasure();
   },
@@ -7246,6 +7249,9 @@ L.Control.Measure = L.Control.extend({
 
         this._updateResults();
         this._updateMeasureStartedWithPoints();
+      } else {
+        this._updateResults();
+        this._updateMeasureStartedNoPoints();
       }
     }
   },
