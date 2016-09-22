@@ -49,7 +49,8 @@ L.Control.Measure = L.Control.extend({
     captureZIndex: 10000,       // z-index of the marker used to capture measure events
     popupOptions: {             // standard leaflet popup options http://leafletjs.com/reference.html#popup-options
       className: 'leaflet-measure-resultpopup',
-      autoPanPadding: [10, 10]
+      autoPanPadding: [10, 10],
+      closeOnClick: false
     },
     limitLineVertices: false,
     intersectionTreshold: 15,
@@ -106,7 +107,6 @@ L.Control.Measure = L.Control.extend({
     // $toggle = this.$toggle = $('.js-toggle', container);         // collapsed content
     this.$interaction = $('.js-interaction', container);         // expanded content
     $start = $('.js-start', container);                          // start button
-    $start.style.display = 'none';
     $cancel = $('.js-cancel', container);                        // cancel button
     $finish = $('.js-finish', container);                        // finish button
     // this.$startPrompt = $('.js-startprompt', container);         // full area with button to start measurment
@@ -178,10 +178,6 @@ L.Control.Measure = L.Control.extend({
   },
   // get state vars and interface ready for measure
   _startMeasure: function () {
-    if (this.options.clearStaleMeasurements) {
-      this._layer.clearLayers();
-    }
-
     this._locked = true;
     this._measureVertexes = L.featureGroup().addTo(this._layer);
     this._captureMarker = L.marker(this._map.getCenter(), {
@@ -251,7 +247,9 @@ L.Control.Measure = L.Control.extend({
   _clearMeasure: function () {
     this._latlngs = [];
     this._resultsModel = null;
-    this._measureVertexes.clearLayers();
+    if (this._measureVertexes) {
+      this._measureVertexes.clearLayers();
+    }
     if (this._measureDrag) {
       this._layer.removeLayer(this._measureDrag);
     }
@@ -391,6 +389,7 @@ L.Control.Measure = L.Control.extend({
       L.DomEvent.on(deleteLink, 'click', function () {
         // TODO. maybe remove any event handlers on zoom and delete buttons?
         this._layer.removeLayer(resultFeature);
+        this._map.fire('measurefinish');
       }, this);
     }
 
@@ -400,13 +399,15 @@ L.Control.Measure = L.Control.extend({
     }
     resultFeature.bindPopup(popupContainer, this.options.popupOptions);
     resultFeature.openPopup(resultFeature.getBounds().getCenter());
+
+    this._startMeasure();
   },
   // handle map click during ongoing measurement
   // add new clicked point, update measure layers and results ui
   _handleMeasureClick: function (evt) {
     var latlng = this._map.mouseEventToLatLng(evt.originalEvent), // get actual latlng instead of the marker's latlng from originalEvent
-      lastClick = _.last(this._latlngs),
-      vertexSymbol = this._symbols.getSymbol('measureVertex');
+        lastClick = _.last(this._latlngs),
+        vertexSymbol = this._symbols.getSymbol('measureVertex');
 
     if (!lastClick || !latlng.equals(lastClick)) { // skip if same point as last click, happens on `dblclick`
       this._latlngs.push(latlng);
